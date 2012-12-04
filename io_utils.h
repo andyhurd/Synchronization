@@ -3,7 +3,8 @@
 #include <climits>
 #include <cstdlib>
 #include <sstream>
-
+#include <string>
+using namespace std;
 int getUserInt(string message, int min, int max) {
 
   int value = INT_MIN;
