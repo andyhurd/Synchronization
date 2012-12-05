@@ -16,7 +16,7 @@ int main(int argc, char *argv[]){
   switch (sourceCode){
     case 1:
       //Run c++ code
-      os << "./cplusplus " << number_of_cars << '\0';
+      os << "./cpp_sync " << number_of_cars << '\0';
       system((os.str()).c_str());
       break;
     case 2:

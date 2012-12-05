@@ -1,12 +1,12 @@
 using namespace std;
 #include <iostream>
+#include <sstream>
 #include <semaphore.h>
 #include <pthread.h>
 #include <vector>
 #include "io_utils.h"
 
 #define QUEUE_NUM 4                   // number of incoming steets to intersection
-#define CARS_NUM 23                   // number of cars
 
 int streets[QUEUE_NUM];               // integers representing the cars waiting in each queue
 int streetIDs[QUEUE_NUM];             // integers representing the queues themselves
@@ -24,6 +24,28 @@ double rndom();
 // a main function woot
 int main (int argc, char *argv[]) {
 
+  int num_cars;
+  bool invalid_run = false;
+
+  if (argc < 2) {
+    invalid_run = true;
+  } else {
+    stringstream ss;
+    ss.clear();
+    ss.str(argv[1]);
+    ss >> num_cars;
+    
+    if (ss.fail()) {
+        invalid_run = true;
+      }
+  }
+
+  if (invalid_run) {
+    cout << "Usage: " << argv[0] << " <Number of Cars>" << endl;
+    exit(1);
+  }
+
+
   // initialize all street queue lengths to zero
   for (int i = 0; i < QUEUE_NUM; i++) {
     streets[i] = 0;
@@ -31,7 +53,7 @@ int main (int argc, char *argv[]) {
   }
   
   // assign the cars to queues
-  for (int i = 0; i < CARS_NUM; i++) {
+  for (int i = 0; i < num_cars; i++) {
     streets[((int) (4 * rndom()))]++;
   }
   
