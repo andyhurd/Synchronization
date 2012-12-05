@@ -1,56 +1,92 @@
+import java.util.LinkedList;
+import java.util.Queue;
 import java.util.concurrent.Semaphore;
 
 
 public class java_sync {
 
-	Semaphore intersection;
-	int[] queues;
+	Semaphore intersection[];
+	Queue<Thread>[] queues;
+	int ended = 0;
 
 	public java_sync(int number_of_cars) throws InterruptedException{
-		intersection = new Semaphore(1);
-		queues = new int[4];
+		//Initiate Varibales
+		intersection = new Semaphore[4];
+		queues = new Queue[4];
+		for (int i = 0; i < queues.length; i++){
+			queues[i] = new LinkedList<Thread>();
+			intersection[i] = new Semaphore(0);
+		}
 		
 		for (int i = 0; i < number_of_cars; i++){
-			queues[(int) (rndom()*4)]++;
+			arrive((int) (rndom()*4));
 		}
-		long currentIteration = 0;
-		while (queues[0] != 0 || queues[1] != 0 || queues[2] != 0 || queues[3] != 0){
-			drive((int) (currentIteration % queues.length));
-			
-			currentIteration++;
+		
+		for (int i = 0; i < queues.length; i++){
+			drive(i);
 		}
+		intersection[0].release();
+
 	}
 	
+	private void arrive(final int que) {
+		queues[que].add(new Thread(new Runnable() {
+			
+			@Override
+			public void run() {
+				try {
+					intersection[que].acquire(); //Get semaphore
+					queues[que].poll();
+					Thread.sleep(10); //simulate driving
+					drive(que);
+					int nextQue = nextQue(que);
+					intersection[nextQue].release(); //Release next semaphore
+					printQues();
+				} catch (InterruptedException e) {
+					//Do Nothing
+				}
+				
+			}
+		}));
+		
+	}
+	
+	public int nextQue(int que){
+		boolean stop = true;
+		int i = 0;
+		while (stop && i < queues.length){
+			if (!queues[i++].isEmpty()) {
+				stop = false;
+			}
+		}
+		if (stop){
+			return 0;
+		}
+		int nextQue = que+1;
+		if (nextQue == queues.length) nextQue = 0;
+		while (queues[nextQue].isEmpty()){
+			nextQue = nextQue+1;
+			if (nextQue == queues.length) nextQue = 0;
+		}
+		return nextQue;
+	}
+
 	// Creates new thread and reducdes that que by one
 	public void drive(int que) throws InterruptedException{
-		if (queues[que] > 0){
-			intersection.acquire();
-			Thread car = new Thread(new Runnable() {
-				
-				@Override
-				public void run() {
-					
-					try {
-						Thread.sleep(10);
-					} catch (InterruptedException e) {
-						//do nothing
-					}
-					intersection.release();
-					
-				}
-			});
+		if (!queues[que].isEmpty()){
+			Thread car = queues[que].peek();
+
 			car.start();
-			queues[que]--;
-			printQues();
+			
 		}
 	}
 	
 	private void printQues() {
 		System.out.println("--------------------");
-		System.out.println("N: " + queues[0]);
-		System.out.println("E: " + queues[1]);
-		System.out.println("S: " + queues[2]);
-		System.out.println("W: " + queues[3]);
+		System.out.println("N: " + queues[0].size());
+		System.out.println("E: " + queues[1].size());
+		System.out.println("S: " + queues[2].size());
+		System.out.println("W: " + queues[3].size());
 	}
 
 	public static void main(String[] args) {
@@ -68,10 +104,6 @@ public class java_sync {
 		} catch(Exception e){
 			//do nothing 
 		}
-		
-		
-		
-
 	}
 	static long state = 1;
 	/* Retruns a random number from 0 to 1 */
