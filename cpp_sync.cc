@@ -155,7 +155,7 @@ void drive (int *i) {
   (*(street_queues[*i])).pop();
   int carID = (*(carIDs[*i])).front();
   (*(carIDs[*i])).pop();
-  cout << "Car #" << carID << " crosses from street " << streetCompass[*i] << endl;
+  cout << "Car " << carID << " from " << streetCompass[*i] << " street" << endl;
 
   // initialize  the next car from this street queue
   if (!(*(street_queues[*i])).empty()) {
