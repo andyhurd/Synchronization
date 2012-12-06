@@ -7,20 +7,20 @@ using namespace std;
 #include <queue>
 #include "io_utils.h"
 
-#define QUEUE_NUM 4                   // number of incoming steets to intersection
+#define QUEUE_NUM 4                             // number of incoming steets to intersection
 
 queue<pthread_t *> *street_queues[QUEUE_NUM];   // queues of waiting car threads
+int streetIDs[QUEUE_NUM];                       // integers representing the queues themselves
 queue<int> *carIDs[QUEUE_NUM];                  // to pull carIDs for output
-int streetIDs[QUEUE_NUM];             // integers representing the queues themselves
-char streetCompass[] = {'N', 'E', 'S', 'W'};
-bool empty = true;                    // indicates no car in intersection
-sem_t mutex;                          // mutual exclusion for checking empty intersection
-sem_t street_permits[QUEUE_NUM];      // semphores to tell a car waiting in particular queue to drive
-vector<pthread_t *> *cars = new vector<pthread_t *>();
+char streetCompass[] = {'N', 'E', 'S', 'W'};    // pull street leaving for output
+bool empty = true;                              // indicates no car in intersection
+sem_t mutex;                                    // mutual exclusion for checking empty intersection
+sem_t street_permits[QUEUE_NUM];                // semphores to tell a car waiting in particular queue to drive
+vector<pthread_t *> *cars;
 
 void drive (int *);
 void *arrival(void *);
-double rndom();   //NESW
+double rndom();
 
 // a main function woot
 int main (int argc, char *argv[]) {
@@ -28,6 +28,7 @@ int main (int argc, char *argv[]) {
   int num_cars;
   bool invalid_run = false;
 
+  // validate args
   if (argc < 2) {
     invalid_run = true;
   } else {
@@ -41,12 +42,16 @@ int main (int argc, char *argv[]) {
       }
   }
 
+  // print out error message if invalid args
   if (invalid_run) {
     cout << "Usage: " << argv[0] << " <Number of Cars>" << endl;
     exit(1);
   }
 
-  // initialize all street queue lengths to zero
+  // initialize car vector
+  cars = new vector<pthread_t *>();
+
+  // initialize all street queues
   for (int i = 0; i < QUEUE_NUM; i++) {
     street_queues[i] = new queue<pthread_t*>();
     carIDs[i] = new queue<int>();
@@ -78,11 +83,23 @@ int main (int argc, char *argv[]) {
     }
   }
 
+  // wait for all threads to finish, then release mem
   for (int i = 0; i < (*cars).size(); i++) {
     pthread_join((*((*cars)[i])), NULL);
+    delete((*cars)[i]);
   }
+  delete(cars);
 
+  // notify user that simulation is done
   cout << "All cars finished." << endl;
+
+  // release memory resources
+  for (int i = 0; i < QUEUE_NUM; i++) {
+    delete(street_queues[i]);
+    delete(carIDs[i]);
+    streetIDs[i] = i;
+  }
+  
 }
 
 // car arrives at street *param
