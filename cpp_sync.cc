@@ -5,6 +5,7 @@ using namespace std;
 #include <pthread.h>
 #include <vector>
 #include <queue>
+#include <unistd.h>
 #include "io_utils.h"
 
 #define QUEUE_NUM 4                             // number of incoming steets to intersection
@@ -161,6 +162,9 @@ void drive (int *i) {
     pthread_t *next_car = (*(street_queues[*i])).front();
     pthread_create(next_car, NULL, &arrival, (void *) i);
   }
+
+  // simulate driving (two milliseconds)
+  usleep(2000);
 
   // when done crossing intersection, call departure to finish
   departure(i);
