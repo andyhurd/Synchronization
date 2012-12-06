@@ -21,7 +21,7 @@ int main(int argc, char *argv[]){
       break;
     case 2:
       //Run java code
-      os << "./javaCode " << number_of_cars << '\0';
+      os << "java java_sync " << number_of_cars << '\0';
       system((os.str()).c_str());
       break;
   }
