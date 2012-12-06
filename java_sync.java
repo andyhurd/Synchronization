@@ -8,11 +8,15 @@ public class java_sync {
 	Semaphore intersection[];
 	Queue<Thread>[] queues;
 	int ended = 0;
+	int cars[];
+	String result;
 
 	public java_sync(int number_of_cars) throws InterruptedException{
 		//Initiate Varibales
 		intersection = new Semaphore[4];
 		queues = new Queue[4];
+		cars = new int[4];
+
 		for (int i = 0; i < queues.length; i++){
 			queues[i] = new LinkedList<Thread>();
 			intersection[i] = new Semaphore(0);
@@ -37,15 +41,15 @@ public class java_sync {
 				try {
 					intersection[que].acquire(); //Get semaphore
 					queues[que].poll();
-					Thread.sleep(10); //simulate driving
+					Thread.sleep(2); //simulate driving
+					printCars(que);
 					drive(que);
 					int nextQue = nextQue(que);
 					intersection[nextQue].release(); //Release next semaphore
-					printQues();
+					//printQues();
 				} catch (InterruptedException e) {
 					//Do Nothing
 				}
-				
 			}
 		}));
 		
@@ -87,6 +91,28 @@ public class java_sync {
 		System.out.println("E: " + queues[1].size());
 		System.out.println("S: " + queues[2].size());
 		System.out.println("W: " + queues[3].size());
+	}
+	
+	private void printCars(int que){
+		String print = "Car " + ++cars[que] + " from ";
+		switch (que){
+			case 0:
+				print += "N";
+				break;
+			case 1:
+				print += "E";
+				break;
+			case 2:
+				print += "S";
+				break;
+			case 3:
+				print += "W";
+				break;
+		}
+		
+		print += " street";
+		System.out.println(print);
+		//result += print + "\n";
 	}
 
 	public static void main(String[] args) {
