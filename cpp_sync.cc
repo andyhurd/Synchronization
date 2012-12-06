@@ -4,22 +4,23 @@ using namespace std;
 #include <semaphore.h>
 #include <pthread.h>
 #include <vector>
+#include <queue>
 #include "io_utils.h"
 
 #define QUEUE_NUM 4                   // number of incoming steets to intersection
 
-int streets[QUEUE_NUM];               // integers representing the cars waiting in each queue
+queue<pthread_t *> *street_queues[QUEUE_NUM];   // queues of waiting car threads
+queue<int> *carIDs[QUEUE_NUM];                  // to pull carIDs for output
 int streetIDs[QUEUE_NUM];             // integers representing the queues themselves
+char streetCompass[] = {'N', 'E', 'S', 'W'};
 bool empty = true;                    // indicates no car in intersection
-bool all_arrived = false;             // indicates all cars have arrived
 sem_t mutex;                          // mutual exclusion for checking empty intersection
-sem_t all_queues_empty;               // indicates when to join all threads
 sem_t street_permits[QUEUE_NUM];      // semphores to tell a car waiting in particular queue to drive
 vector<pthread_t *> *cars = new vector<pthread_t *>();
 
 void drive (int *);
 void *arrival(void *);
-double rndom();
+double rndom();   //NESW
 
 // a main function woot
 int main (int argc, char *argv[]) {
@@ -45,16 +46,20 @@ int main (int argc, char *argv[]) {
     exit(1);
   }
 
-
   // initialize all street queue lengths to zero
   for (int i = 0; i < QUEUE_NUM; i++) {
-    streets[i] = 0;
+    street_queues[i] = new queue<pthread_t*>();
+    carIDs[i] = new queue<int>();
     streetIDs[i] = i;
   }
   
   // assign the cars to queues
   for (int i = 0; i < num_cars; i++) {
-    streets[((int) (4 * rndom()))]++;
+    pthread_t *next_car = new pthread_t();
+    int next_rand = ((int) (4 * rndom()));
+    (*cars).push_back(next_car);
+    (*(carIDs[next_rand])).push(i);
+    (*(street_queues[next_rand])).push(next_car);
   }
   
   // initialize all street semaphores to zero
@@ -64,26 +69,23 @@ int main (int argc, char *argv[]) {
 
   // initialize mutex and empty queues semaphores to one and zero, respectively
   sem_init(&mutex, 0, 1);
-  sem_init(&all_queues_empty, 0, 0);
   
   // let the first car from each street arrive at intersection
   for (int i = 0; i < QUEUE_NUM; i++) {
-    pthread_t next_car;
-    (*cars).push_back(&next_car);
-    pthread_create(&next_car, NULL, &arrival, (void *) &streetIDs[i]);
+    if (!(*(street_queues[i])).empty()) {
+      pthread_t *next_car = (*(street_queues[i])).front();
+      pthread_create(next_car, NULL, &arrival, (void *) &streetIDs[i]);
+    }
   }
 
-  all_arrived = true;
-  sem_wait(&all_queues_empty);
   for (int i = 0; i < (*cars).size(); i++) {
-    cout << "waiting on " << i << endl;
     pthread_join((*((*cars)[i])), NULL);
   }
 
-  cout << "Problem.solved()\n";
+  cout << "All cars finished." << endl;
 }
 
-// car arrives at street i
+// car arrives at street *param
 void *arrival(void *param) {
 
   // get queue number
@@ -104,44 +106,42 @@ void *arrival(void *param) {
 
 // car leaves the intersection
 void departure (int *i) {
-  // one car departs
-  // pick the next intersection for the next car to go
+  // pick the next street to release a car
   int next_queue = *i;
-  int k;
-  for (k = 0; k < QUEUE_NUM; k++) {
+  for (int k = 0; k < QUEUE_NUM; k++) {
     next_queue = (next_queue + 1) % QUEUE_NUM;
-    if (streets[next_queue] > 0) {
+    if (!(*(street_queues[next_queue])).empty()) {
       break;
     }
   }
-  if (all_arrived && k == QUEUE_NUM) {
-    sem_post(&all_queues_empty);
-  }
 
-  cout << "Releasing: " << next_queue << endl;
+  // indicate next car's turn
   sem_post(&street_permits[next_queue]);
-
 
   // if no cars are in queues, empty = true (first assume empty, then disprove)
   empty = true;
   for (int j = 0; j < QUEUE_NUM; j++) {
-    if (streets[j] > 0) {
+    if (!(*(street_queues[j])).empty()) {
       empty = false;
     }
   }
 
+  // finish this car thread
   pthread_exit(NULL);
 }
 
 // car drives through intersection
 void drive (int *i) {
-  cout << "Crossing: " << *i << endl;
-  streets[*i]--;
+
+  // leave street queue
+  (*(street_queues[*i])).pop();
+  int carID = (*(carIDs[*i])).front();
+  (*(carIDs[*i])).pop();
+  cout << "Car #" << carID << " crosses from street " << streetCompass[*i] << endl;
 
   // initialize  the next car from this street queue
-  if (streets[*i] > 0) {
-    pthread_t *next_car = new pthread_t();
-    (*cars).push_back(next_car);
+  if (!(*(street_queues[*i])).empty()) {
+    pthread_t *next_car = (*(street_queues[*i])).front();
     pthread_create(next_car, NULL, &arrival, (void *) i);
   }
 
